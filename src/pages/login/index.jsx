@@ -58,24 +58,34 @@ export default class extends Component {
                         }
                     ).then(res => {
                         if (res.errorType === null) {
-                            const {id,nickName, telephone} = res.data;
-                            setLoginUser({
-                                id: id,
-                                name: nickName,
-                            });
-                            notification.open({
-                                type: "success",
-                                key: "1",
-                                message: '登录成功',
-                                duration: 3,
-                                top: "200px"
-                            });
-                            // 跳转页面，优先跳转上次登出页面
-                            const lastHref = window.sessionStorage.getItem('last-href');
+                            const {id, nickName, telephone, identity} = res.data;
+                            if (identity === '01') {
+                                setLoginUser({
+                                    id: id,
+                                    name: nickName,
+                                });
+                                notification.open({
+                                    type: "success",
+                                    key: "1",
+                                    message: '登录成功',
+                                    duration: 3,
+                                    top: "200px"
+                                });
+                                // 跳转页面，优先跳转上次登出页面
+                                const lastHref = window.sessionStorage.getItem('last-href');
 
-                            // 强制跳转 进入系统之后，需要一些初始化工作，需要所有的js重新加载
-                            window.location.href = lastHref || `${ROUTE_BASE_NAME}/`;
-                            // this.props.history.push(lastHref || '/');
+                                // 强制跳转 进入系统之后，需要一些初始化工作，需要所有的js重新加载
+                                window.location.href = lastHref || `${ROUTE_BASE_NAME}/`;
+                                // this.props.history.push(lastHref || '/');
+                            } else {
+                                notification.open({
+                                    type: "error",
+                                    key: "2",
+                                    message: "用户名或密码错误",
+                                    duration: 3,
+                                    top: "200px"
+                                });
+                            }
                         }
                         if (res.errorType !== null) {
                             notification.open({
