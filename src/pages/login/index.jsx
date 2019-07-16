@@ -1,7 +1,8 @@
 import React, {Component} from 'react'
 import {Helmet} from 'react-helmet';
-import {Form, Icon, Input, Button} from 'antd';
+import {Form, Icon, Input, Button, notification} from 'antd';
 import {setLoginUser} from '@/commons';
+import {ajaxHoc} from '../../commons/ajax';
 import config from '@/commons/config-hoc';
 import Local from '@/layouts/header-i18n';
 import Color from '@/layouts/header-color-picker';
@@ -11,7 +12,7 @@ import './style.less'
 function hasErrors(fieldsError) {
     return Object.keys(fieldsError).some(field => fieldsError[field]);
 }
-
+@ajaxHoc()
 @Form.create()
 @config({
     path: '/login',
@@ -46,24 +47,46 @@ export default class extends Component {
                 this.setState({loading: true, message: ''});
 
                 // TODO 发送请求进行登录，一下为前端硬编码，模拟请求
-                const {userName, password} = values;
+                const {nickName, password} = values;
 
                 setTimeout(() => {
                     this.setState({loading: false});
-                    if (userName === 'admin' && password === '111') {
-                        setLoginUser({
-                            id: 'tempUserId',
-                            name: 'Admin',
-                        });
-                        // 跳转页面，优先跳转上次登出页面
-                        const lastHref = window.sessionStorage.getItem('last-href');
+                    this.props.ajax.post('/user/loginByPwd',
+                        {
+                            nickName,
+                            password
+                        }
+                    ).then(res => {
+                        if (res.errorType === null) {
+                            const {id,nickName, telephone} = res.data;
+                            setLoginUser({
+                                id: id,
+                                name: nickName,
+                            });
+                            notification.open({
+                                type: "success",
+                                key: "1",
+                                message: '登录成功',
+                                duration: 3,
+                                top: "200px"
+                            });
+                            // 跳转页面，优先跳转上次登出页面
+                            const lastHref = window.sessionStorage.getItem('last-href');
 
-                        // 强制跳转 进入系统之后，需要一些初始化工作，需要所有的js重新加载
-                        window.location.href = lastHref || `${ROUTE_BASE_NAME}/`;
-                        // this.props.history.push(lastHref || '/');
-                    } else {
-                        this.setState({message: '用户名或密码错误！'});
-                    }
+                            // 强制跳转 进入系统之后，需要一些初始化工作，需要所有的js重新加载
+                            window.location.href = lastHref || `${ROUTE_BASE_NAME}/`;
+                            // this.props.history.push(lastHref || '/');
+                        }
+                        if (res.errorType !== null) {
+                            notification.open({
+                                type: "error",
+                                key: "2",
+                                message: res.message,
+                                duration: 3,
+                                top: "200px"
+                            });
+                        }
+                    });
                 }, 1000)
             }
         });
@@ -75,7 +98,7 @@ export default class extends Component {
         const {loading, message} = this.state;
 
         // Only show error after a field is touched.
-        const userNameError = isFieldTouched('userName') && getFieldError('userName');
+        const userNameError = isFieldTouched('nickName') && getFieldError('nickName');
         const passwordError = isFieldTouched('password') && getFieldError('password');
         return (
             <div styleName="root" className="login-bg">
@@ -96,8 +119,8 @@ export default class extends Component {
                             validateStatus={userNameError ? 'error' : ''}
                             help={userNameError || ''}
                         >
-                            {getFieldDecorator('userName', {
-                                rules: [{required: true, message: local.userNameEmptyTip}],
+                            {getFieldDecorator('nickName', {
+                                rules: [{required: true, message: "请输入用户名"}],
                             })(
                                 <Input allowClear autoFocus prefix={<Icon type="user" style={{fontSize: 13}}/>} placeholder="用户名"/>
                             )}
@@ -107,7 +130,7 @@ export default class extends Component {
                             help={passwordError || ''}
                         >
                             {getFieldDecorator('password', {
-                                rules: [{required: true, message: local.passwordEmptyTip}],
+                                rules: [{required: true, message: "请输入密码"}],
                             })(
                                 <Input.Password prefix={<Icon type="lock" style={{fontSize: 13}}/>} placeholder="密码"/>
                             )}
@@ -123,10 +146,6 @@ export default class extends Component {
                         </Button>
                     </Form>
                     <div styleName="error-tip">{message}</div>
-                    <div styleName="tip">
-                        <span>{local.userName}：admin </span>
-                        <span>{local.password}：111</span>
-                    </div>
                 </div>
             </div>
         );
